@@ -12,22 +12,19 @@ import (
 	"time"
 )
 
-const N = 10
+const N = 20
 
 var delta = 0.1
 
 type Case struct {
-	PHI [N + 1]float64
-	R   [N + 1]float64
-	EPS float64
-	H   float64
-	M   int
-	N   int
-}
-
-type Graph struct {
+	PHI   [N + 1]float64
+	R     [N + 1]float64
 	XAXIS []float64
 	YAXIS []float64
+	EPS   float64
+	H     float64
+	M     int
+	N     int
 }
 
 func main() {
@@ -42,23 +39,6 @@ func main() {
 	h := hCalc(phi)
 	log.Printf("h = %f", h)
 	ZV(M, h, eps, phi, r)
-	start := time.Now()
-	xs := xAxis(h)
-	var ys []float64
-	for i := 0; i < len(xs); i++ {
-		ys = append(ys, f(M, h, xs[i], eps, phi, r))
-	}
-	elapsed := time.Since(start)
-	log.Printf("X & F(X) took %s", elapsed)
-	graph := Graph{XAXIS: xs, YAXIS: ys}
-	res, err := json.Marshal(graph)
-	if err != nil {
-		log.Println(err)
-	}
-	ex := ioutil.WriteFile("graph.json", res, os.ModePerm)
-	if ex != nil {
-		log.Println(ex)
-	}
 }
 
 func xAxis(h float64) []float64 {
@@ -90,6 +70,8 @@ func ZV(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
 			start := time.Now()
 			ok := true
 			i := 0
+			xs := xAxis(h)
+			var ys []float64
 			for ok {
 				for i < N+1 {
 					fGov := f(M, h, phi[i], 0, phi, r) + eps
@@ -104,6 +86,9 @@ func ZV(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
 					}
 				}
 				ok = false
+				for i := 0; i < len(xs); i++ {
+					ys = append(ys, f(M, h, xs[i], eps, phi, r))
+				}
 			}
 			d := maxDiff(M, h, eps, phi, r)
 			log.Printf(
@@ -114,7 +99,7 @@ func ZV(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
 			)
 			elapsed := time.Since(start)
 			log.Printf("ZV_%d_%d took %s", k, j, elapsed)
-			c := Case{EPS: eps, H: h, PHI: phi, R: r, M: M, N: N}
+			c := Case{EPS: eps, H: h, PHI: phi, R: r, M: M, N: N, XAXIS: xs, YAXIS: ys}
 			res, err := json.Marshal(c)
 			if err != nil {
 				log.Println(err)
