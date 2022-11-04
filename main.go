@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"math"
 	"math/rand"
@@ -10,6 +9,8 @@ import (
 )
 
 const N = 50
+
+var delta = 0.1
 
 func main() {
 	var M = 10
@@ -21,92 +22,60 @@ func main() {
 	phi[N] = phi[0] + 2*math.Pi
 	r[N] = phi[0]
 	h := hCalc(phi)
-	toConsole(phi)
 	log.Printf("h = %f", h)
-	ZV4(M, h, eps, phi, r)
-	ZV5(M, h, eps, phi, r)
+	ZV(M, h, eps, phi, r)
 }
 
-func ZV3(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
-	start := time.Now()
-	ok := true
-	i := 0
-	for ok {
-		for i < N+1 {
-			if f(M, h, phi[i], eps, phi, r) < r[i] {
-				eps += h
-				M++
-				i = 0
-			} else {
-				i++
-			}
-		}
-		ok = false
+func epsCalc(i int, k int, eps float64, fGov float64, r [N + 1]float64) float64 {
+	var res float64
+	if k == 1 {
+		res = eps + r[i] - fGov
 	}
-	d := maxDiff(M, h, eps, phi, r)
-	log.Printf("M3 = %d eps3 = %.5f dif3 = %.5f\n", M, eps, d)
-	elapsed := time.Since(start)
-	log.Printf("ZV3 took %s", elapsed)
+	if k == 2 {
+		res = eps + delta
+	}
+	return res
 }
 
-func ZV4(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
-	start := time.Now()
-	ok := true
-	i := 0
-	for ok {
-		for i < N+1 {
-			fGov := f(M, h, phi[i], eps, phi, r)
-			if fGov < r[i] {
-				eps += r[i] - fGov
-				M++
-				i = 0
-			} else {
-				i++
+func ZV(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
+	var tEps = eps
+	var tM = M
+	for k := 1; k <= 2; k++ {
+		for j := 1; j <= 2; j++ {
+			M = tM
+			eps = tEps
+			start := time.Now()
+			ok := true
+			i := 0
+			for ok {
+				for i < N+1 {
+					fGov := f(M, h, phi[i], 0, phi, r) + eps
+					if fGov < r[i] {
+						eps = epsCalc(i, k, eps, fGov, r)
+						if j == 1 {
+							M++
+						}
+						i = 0
+					} else {
+						i++
+					}
+				}
+				ok = false
 			}
+			d := maxDiff(M, h, eps, phi, r)
+			log.Printf(
+				"M_%d_%d = %d eps_%d_%d = %.5f dif_%d_%d = %.5f \n",
+				k, j, M,
+				k, j, eps,
+				k, j, d,
+			)
+			elapsed := time.Since(start)
+			log.Printf("ZV_%d_%d took %s", k, j, elapsed)
 		}
-		ok = false
 	}
-	d := maxDiff(M, h, eps, phi, r)
-	log.Printf("M4 = %d eps4 = %.5f dif4 = %.5f\n", M, eps, d)
-	elapsed := time.Since(start)
-	log.Printf("ZV4 took %s", elapsed)
-}
-
-func ZV5(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
-	start := time.Now()
-	ok := true
-	i := 0
-	for ok {
-		for i < N+1 {
-			fGov := f(M, h, phi[i], 0, phi, r) + eps
-			if fGov < r[i] {
-				eps += r[i] - fGov
-				M++
-				i = 0
-			} else {
-				i++
-			}
-		}
-		ok = false
-	}
-	d := maxDiff1(M, h, eps, phi, r)
-	log.Printf("M5 = %d eps5 = %.5f dif5 = %.5f\n", M, eps, d)
-	elapsed := time.Since(start)
-	log.Printf("ZV5 took %s", elapsed)
 }
 
 func maxDiff(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) float64 {
-	max := -1.0
-	for i := 0; i < N; i++ {
-		fGov := f(M, h, phi[i], eps, phi, r) - r[i]
-		if fGov > max {
-			max = fGov
-		}
-	}
-	return max
-}
-
-func maxDiff1(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) float64 {
 	max := -1.0
 	for i := 0; i < N; i++ {
 		fGov := f(M, h, phi[i], 0, phi, r) - r[i] + eps
@@ -126,12 +95,6 @@ func hCalc(phi [N + 1]float64) float64 {
 		}
 	}
 	return h
-}
-
-func toConsole(list [N + 1]float64) {
-	for _, value := range list {
-		fmt.Printf("%f\n", value)
-	}
 }
 
 func a0(h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) float64 {
