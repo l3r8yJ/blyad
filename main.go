@@ -14,7 +14,7 @@ import (
 
 const N = 10
 
-var delta = 0.00000001
+var delta = 0.001
 
 type Case struct {
 	PHI   [N + 1]float64
@@ -44,7 +44,7 @@ func main() {
 
 func xAxis(h float64) []float64 {
 	var res = make([]float64, 0)
-	for i := 0.0; i < 2*math.Pi; i += h / 10 {
+	for i := 0.0; i < 2*math.Pi; i += h / math.Pow(math.Pi, math.Pi) {
 		res = append(res, i)
 	}
 	return res
