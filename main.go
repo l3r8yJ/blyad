@@ -12,9 +12,9 @@ import (
 	"time"
 )
 
-const N = 30
+const N = 10
 
-var delta = 0.0001
+var delta = 0.00000001
 
 type Case struct {
 	PHI   [N + 1]float64
@@ -34,7 +34,6 @@ func main() {
 	var phi = normalDistribution(math.Pi, math.Pi)
 	var r = normalDistribution(5, 1)
 	var eps = 0.1
-	//log.Printf("M0 = %d, N = %d\n", M, N)
 	sort.Float64s(phi[0:N])
 	phi[N] = phi[0] + 2*math.Pi
 	r[N] = phi[0]
