@@ -31,12 +31,12 @@ type Case struct {
 
 func main() {
 	var M = 10
-	var phi = normalDistribution(math.Pi, 2*math.Pi)
+	var phi = normalDistribution(0, math.Pi)
 	var r = normalDistribution(5, 1)
 	var eps = 0.1
 	sort.Float64s(phi[0:N])
 	phi[N] = phi[0] + 2*math.Pi
-	r[N] = phi[0]
+	r[N] = r[0]
 	h := hCalc(phi)
 	log.Printf("h = %f", h)
 	ZV(M, h, eps, phi, r)
