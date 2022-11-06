@@ -23,6 +23,7 @@ type Case struct {
 	YAXIS []float64
 	EPS   float64
 	DIFF  float64
+	DELTA float64
 	H     float64
 	M     int
 	N     int
@@ -100,7 +101,7 @@ func ZV(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
 			)
 			elapsed := time.Since(start)
 			log.Printf("ZV_%d_%d took %s", k, j, elapsed)
-			c := Case{EPS: eps, H: h, DIFF: d, PHI: phi, R: r, M: M, N: N, XAXIS: xs, YAXIS: ys}
+			c := Case{EPS: eps, H: h, DIFF: d, DELTA: delta, PHI: phi, R: r, M: M, N: N, XAXIS: xs, YAXIS: ys}
 			res, err := json.Marshal(c)
 			if err != nil {
 				log.Println(err)
