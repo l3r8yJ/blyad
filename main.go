@@ -75,7 +75,7 @@ func ZV(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
 			xs := xAxis(h)
 			var ys []float64
 			for ok {
-				for i < N+1 {
+				for i < N {
 					fGov := f(M, h, phi[i], 0, phi, r) + eps
 					if fGov < r[i] {
 						eps = epsCalc(i, k, eps, fGov, r)
