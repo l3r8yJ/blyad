@@ -117,7 +117,7 @@ func ZV(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
 			if err != nil {
 				log.Println(err)
 			}
-			ex := ioutil.WriteFile(fmt.Sprintf("case_%d_%d.json", k, j), res, os.ModePerm)
+			ex := ioutil.WriteFile(fmt.Sprintf("json/case_%d_%d.json", k, j), res, os.ModePerm)
 			if ex != nil {
 				log.Println(ex)
 			}
