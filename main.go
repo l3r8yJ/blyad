@@ -12,9 +12,9 @@ import (
 	"time"
 )
 
-const N = 10
+const N = 50
 
-var delta = 0.001
+var delta = 0.1
 
 type Case struct {
 	PHI   [N + 1]float64
@@ -31,7 +31,7 @@ type Case struct {
 
 func main() {
 	var M = 10
-	var phi = normalDistribution(math.Pi, math.Pi)
+	var phi = normalDistribution(math.Pi, 2*math.Pi)
 	var r = normalDistribution(5, 1)
 	var eps = 0.1
 	sort.Float64s(phi[0:N])
@@ -44,7 +44,7 @@ func main() {
 
 func xAxis(h float64) []float64 {
 	var res = make([]float64, 0)
-	for i := 0.0; i < 2*math.Pi; i += h / math.Pow(math.Pi, math.Pi) {
+	for i := 0.0; i < 2*math.Pi; i += h / 10 {
 		res = append(res, i)
 	}
 	return res
@@ -88,7 +88,7 @@ func ZV(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
 				}
 				ok = false
 				for i := 0; i < len(xs); i++ {
-					ys = append(ys, f(M, h, xs[i], eps, phi, r))
+					ys = append(ys, f(M, h, xs[i], 0, phi, r)+eps)
 				}
 			}
 			d := maxDiff(M, h, eps, phi, r)
