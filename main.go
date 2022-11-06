@@ -12,9 +12,9 @@ import (
 	"time"
 )
 
-const N = 20
+const N = 10
 
-var delta = 0.1
+var delta = 0.0001
 
 type Case struct {
 	PHI   [N + 1]float64
@@ -22,6 +22,7 @@ type Case struct {
 	XAXIS []float64
 	YAXIS []float64
 	EPS   float64
+	DIFF  float64
 	H     float64
 	M     int
 	N     int
@@ -50,14 +51,14 @@ func xAxis(h float64) []float64 {
 }
 
 func epsCalc(i int, k int, eps float64, fGov float64, r [N + 1]float64) float64 {
-	var res float64
-	if k == 1 {
-		res = eps + r[i] - fGov
+	switch k {
+	case 1:
+		return eps + r[i] - fGov
+	case 2:
+		return eps + delta
+	default:
+		return 0.0
 	}
-	if k == 2 {
-		res = eps + delta
-	}
-	return res
 }
 
 func ZV(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
@@ -99,7 +100,7 @@ func ZV(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
 			)
 			elapsed := time.Since(start)
 			log.Printf("ZV_%d_%d took %s", k, j, elapsed)
-			c := Case{EPS: eps, H: h, PHI: phi, R: r, M: M, N: N, XAXIS: xs, YAXIS: ys}
+			c := Case{EPS: eps, H: h, DIFF: d, PHI: phi, R: r, M: M, N: N, XAXIS: xs, YAXIS: ys}
 			res, err := json.Marshal(c)
 			if err != nil {
 				log.Println(err)
