@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const N = 30
+const N = 10
 
 var delta = 0.1
 
