@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,7 +15,7 @@ import (
 
 const N = 3
 
-var delta = 0.001
+var delta = 0.1
 var aCache = make([]float64, 0)
 var bCache = make([]float64, 0)
 var cSize = 0
@@ -43,6 +44,7 @@ func main() {
 	h := hCalc(phi)
 	log.Printf("h = %f", h)
 	ZV(M, h, eps, phi, r)
+	//ZVM(M, h, eps, phi, r)
 }
 
 func xAxis(h float64) []float64 {
@@ -64,11 +66,49 @@ func epsCalc(i int, k int, eps float64, fGov float64, r [N + 1]float64) float64 
 	}
 }
 
+func ZVM(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) int {
+	var aValue = a0(h, 0, phi, r)
+	start := time.Now()
+	ok := true
+	i := 0
+	xs := xAxis(h)
+	var ys []float64
+	for ok {
+		for i < N {
+			fGov := f(M, h, phi[i], 0, phi, r, aValue) + eps
+			if fGov < r[i] {
+				M++
+				dcp, err := maxDiff(M, h, eps, phi, r, aValue)
+				println(M, dcp)
+				panic(err)
+				i = 0
+			} else {
+				i++
+			}
+		}
+		ok = false
+		for i := 0; i < len(xs); i++ {
+			ys = append(ys, f(M, h, xs[i], 0, phi, r, aValue)+eps)
+		}
+	}
+	d, _ := maxDiff(M, h, eps, phi, r, aValue)
+	log.Printf(
+		"M_%d_%d = %d eps_%d_%d = %.5f dif_%d_%d = %.5f \n",
+		1488, 1488, M,
+		1488, 1488, eps,
+		1488, 1488, d,
+	)
+	elapsed := time.Since(start)
+	log.Printf("ZV_%d_%d took %s", 1488, 1488, elapsed)
+	toJson(M, h, eps, phi, r, d, xs, ys, 1488, 1488)
+	return M
+}
+
 func ZV(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
 	var tEps = eps
 	var tM = M
 	var aValue = a0(h, 0, phi, r)
-	for k := 1; k <= 2; k++ {
+	for k := 0; k <= 2; k++ {
 		for j := 1; j <= 2; j++ {
 			if k == 0 && j == 2 {
 				continue
@@ -98,7 +138,7 @@ func ZV(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
 					ys = append(ys, f(M, h, xs[i], 0, phi, r, aValue)+eps)
 				}
 			}
-			d := maxDiff(M, h, eps, phi, r, aValue)
+			d, _ := maxDiff(M, h, eps, phi, r, aValue)
 			log.Printf(
 				"M_%d_%d = %d eps_%d_%d = %.5f dif_%d_%d = %.5f \n",
 				k, j, M,
@@ -135,15 +175,18 @@ func toJson(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64,
 	}
 }
 
-func maxDiff(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64, aValue float64) float64 {
+func maxDiff(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64, aValue float64) (float64, error) {
 	max := -1.0
 	for i := 0; i < N; i++ {
 		fGov := f(M, h, phi[i], 0, phi, r, aValue) - r[i] + eps
+		if fGov < 0 {
+			return 0.0, errors.New("HELP")
+		}
 		if fGov > max {
 			max = fGov
 		}
 	}
-	return max
+	return max, nil
 }
 
 func hCalc(phi [N + 1]float64) float64 {
