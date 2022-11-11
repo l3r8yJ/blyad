@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const N = 3
+const N = 10
 
 var delta = 0.001
 var aCache = make([]float64, 0)
@@ -43,11 +43,12 @@ func main() {
 	h := hCalc(phi)
 	log.Printf("h = %f", h)
 	ZV(M, h, eps, phi, r)
+
 }
 
 func xAxis(h float64) []float64 {
 	var res = make([]float64, 0)
-	for i := 0.0; i < 2*math.Pi; i += h / 10 {
+	for i := 0.1; i < 2*math.Pi-0.1; i += h / 10 {
 		res = append(res, i)
 	}
 	return res
@@ -205,14 +206,15 @@ func f(M int, h float64, x float64, eps float64, phi [N + 1]float64, r [N + 1]fl
 }
 
 func C(r float64) float64 {
-	return r / 10
+	return r / 228
 }
 
 func normalDistribution(mu float64, sigma float64) [N + 1]float64 {
 	var accum = [N + 1]float64{}
-	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < N; i++ {
-		accum[i] = math.Mod(math.Abs(normalInverse(mu*rand.Float64(), sigma*rand.Float64())), 2*math.Pi)
+		rand.Seed(time.Now().UnixNano())
+		accum[i] = math.Mod(math.Abs(normalInverse(mu, sigma)), 2*math.Pi)
+		time.Sleep(10 * time.Millisecond)
 	}
 	return accum
 }
