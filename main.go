@@ -12,9 +12,12 @@ import (
 	"time"
 )
 
-const N = 10
+const N = 3
 
-var delta = 0.1
+var delta = 0.001
+var aCache = make([]float64, 0)
+var bCache = make([]float64, 0)
+var cSize = 0
 
 type Case struct {
 	PHI   [N + 1]float64
@@ -31,7 +34,7 @@ type Case struct {
 
 func main() {
 	var M = 10
-	var phi = normalDistribution(1, 2*math.Pi-2)
+	var phi = normalDistribution(0, 2*math.Pi)
 	var r = normalDistribution(5, 1)
 	var eps = 0.1
 	sort.Float64s(phi[0:N])
@@ -57,15 +60,19 @@ func epsCalc(i int, k int, eps float64, fGov float64, r [N + 1]float64) float64 
 	case 2:
 		return eps + delta
 	default:
-		return 0.0
+		return eps
 	}
 }
 
 func ZV(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
 	var tEps = eps
 	var tM = M
+	var aValue = a0(h, 0, phi, r)
 	for k := 1; k <= 2; k++ {
 		for j := 1; j <= 2; j++ {
+			if k == 0 && j == 2 {
+				continue
+			}
 			M = tM
 			eps = tEps
 			start := time.Now()
@@ -75,7 +82,7 @@ func ZV(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
 			var ys []float64
 			for ok {
 				for i < N {
-					fGov := f(M, h, phi[i], 0, phi, r) + eps
+					fGov := f(M, h, phi[i], 0, phi, r, aValue) + eps
 					if fGov < r[i] {
 						eps = epsCalc(i, k, eps, fGov, r)
 						if j == 1 {
@@ -88,10 +95,10 @@ func ZV(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
 				}
 				ok = false
 				for i := 0; i < len(xs); i++ {
-					ys = append(ys, f(M, h, xs[i], 0, phi, r)+eps)
+					ys = append(ys, f(M, h, xs[i], 0, phi, r, aValue)+eps)
 				}
 			}
-			d := maxDiff(M, h, eps, phi, r)
+			d := maxDiff(M, h, eps, phi, r, aValue)
 			log.Printf(
 				"M_%d_%d = %d eps_%d_%d = %.5f dif_%d_%d = %.5f \n",
 				k, j, M,
@@ -100,34 +107,38 @@ func ZV(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
 			)
 			elapsed := time.Since(start)
 			log.Printf("ZV_%d_%d took %s", k, j, elapsed)
-			c := Case{
-				EPS:   eps,
-				H:     h,
-				DIFF:  d,
-				DELTA: delta,
-				PHI:   phi,
-				R:     r,
-				M:     M,
-				N:     N,
-				XAXIS: xs,
-				YAXIS: ys,
-			}
-			res, err := json.Marshal(c)
-			if err != nil {
-				log.Println(err)
-			}
-			ex := ioutil.WriteFile(fmt.Sprintf("json/case_%d_%d.json", k, j), res, os.ModePerm)
-			if ex != nil {
-				log.Println(ex)
-			}
+			toJson(M, h, eps, phi, r, d, xs, ys, k, j)
 		}
 	}
 }
 
-func maxDiff(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) float64 {
+func toJson(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64, d float64, xs []float64, ys []float64, k int, j int) {
+	c := Case{
+		EPS:   eps,
+		H:     h,
+		DIFF:  d,
+		DELTA: delta,
+		PHI:   phi,
+		R:     r,
+		M:     M,
+		N:     N,
+		XAXIS: xs,
+		YAXIS: ys,
+	}
+	res, err := json.Marshal(c)
+	if err != nil {
+		log.Println(err)
+	}
+	ex := ioutil.WriteFile(fmt.Sprintf("json/case_%d_%d.json", k, j), res, os.ModePerm)
+	if ex != nil {
+		log.Println(ex)
+	}
+}
+
+func maxDiff(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64, aValue float64) float64 {
 	max := -1.0
 	for i := 0; i < N; i++ {
-		fGov := f(M, h, phi[i], 0, phi, r) - r[i] + eps
+		fGov := f(M, h, phi[i], 0, phi, r, aValue) - r[i] + eps
 		if fGov > max {
 			max = fGov
 		}
@@ -175,12 +186,21 @@ func bn(h float64, n int, eps float64, phi [N + 1]float64, r [N + 1]float64) flo
 	return sum
 }
 
-func f(M int, h float64, x float64, eps float64, phi [N + 1]float64, r [N + 1]float64) float64 {
+func f(M int, h float64, x float64, eps float64, phi [N + 1]float64, r [N + 1]float64, aValue float64) float64 {
 	var sum = 0.0
-	sum += a0(h, eps, phi, r) / 2
+	sum += aValue / 2
 	for n := 1; n <= M; n++ {
-		sum += an(h, n, eps, phi, r)*math.Cos(float64(n)*x) + bn(h, n, eps, phi, r)*math.Sin(float64(n)*x)
+		if n < cSize {
+			sum += aCache[n]*math.Cos(float64(n)*x) + bCache[n]*math.Sin(float64(n)*x)
+		} else {
+			bval := bn(h, n, eps, phi, r)
+			aval := an(h, n, eps, phi, r)
+			aCache = append(aCache, aval)
+			bCache = append(aCache, bval)
+			sum += aval*math.Cos(float64(n)*x) + bval*math.Sin(float64(n)*x)
+		}
 	}
+	cSize = M
 	return sum
 }
 
@@ -190,8 +210,9 @@ func C(r float64) float64 {
 
 func normalDistribution(mu float64, sigma float64) [N + 1]float64 {
 	var accum = [N + 1]float64{}
+	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < N; i++ {
-		accum[i] = math.Mod(math.Abs(normalInverse(mu, sigma)), 2*math.Pi)
+		accum[i] = math.Mod(math.Abs(normalInverse(mu*rand.Float64(), sigma*rand.Float64())), 2*math.Pi)
 	}
 	return accum
 }
