@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const N = 3
+const N = 100
 
 var delta = 0.1
 var aCache = make([]float64, 0)
@@ -108,11 +108,8 @@ func ZV(M int, h float64, eps float64, phi [N + 1]float64, r [N + 1]float64) {
 	var tEps = eps
 	var tM = M
 	var aValue = a0(h, 0, phi, r)
-	for k := 0; k <= 2; k++ {
+	for k := 1; k <= 2; k++ {
 		for j := 1; j <= 2; j++ {
-			if k == 0 && j == 2 {
-				continue
-			}
 			M = tM
 			eps = tEps
 			start := time.Now()
